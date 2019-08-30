@@ -12,35 +12,87 @@
 #pragma once
 
 #include <cstdlib>
+#include <string>
+#include <vector>
+
+#include <opencv2/opencv.hpp>
 
 #ifndef uchar
-#define uchar unsigned char
+typedef unsigned char uchar;
 #endif  // uchar
 
+namespace pcv
+{
 class ImageQuadtree
 {
  public:
-    ImageQuadtree();
-
-    ~ImageQuadtree();
-
- private:
     struct ImageQuadrant {
+        using Ptr = ImageQuadrant*;
+
         ImageQuadrant();
 
         ~ImageQuadrant();
 
         bool isLeaf;
+        uint8_t level;
+
+        uint32_t rMin;
+        uint32_t rMax;
+        uint32_t cMin;
+        uint32_t cMax;
+
+        std::vector<uchar> pixel;
+
+        const uint32_t numPixels() const;
 
         ImageQuadrant* child[4];
     };
 
+    explicit ImageQuadtree(const std::string& imgName, const size_t leafSize = 4);
+
+    ~ImageQuadtree();
+
+    uchar* unpackQuadtree() const;
+
+    cv::Mat unpackcvMatQuadtree() const;
+
+    const size_t imgCols() const
+    {
+        return this->_imgCols;
+    }
+
+    const size_t imgRows() const
+    {
+        return this->_imgRows;
+    }
+
+    const size_t imgChannel() const
+    {
+        return this->_imgChannel;
+    }
+
  private:
-    size_t HEIGHT;
+    ImageQuadrant::Ptr createImageQuadrant(const uint32_t rMin, const uint32_t rMax, const uint32_t cMin,
+                                           const uint32_t cMax, uint8_t level);
 
-    size_t WIDTH;
+    const std::vector<float> estimateAveragePixelValue(const ImageQuadrant* quadrant) const;
+    const std::vector<float> estimateVariancePixelValue(const ImageQuadrant* quadrant) const;
 
-    uchar* data;
+    void unpackQuadtree(const ImageQuadrant* quadrant, uchar* unpackedData) const;
 
-    ImageQuadrant* root;
+ private:
+    std::string _imgName;
+
+    size_t _imgCols;
+
+    size_t _imgRows;
+
+    size_t _imgChannel;
+
+    uchar* _data;
+
+    size_t _minLeafSize;
+
+    ImageQuadrant::Ptr _root;
 };
+}  // namespace pcv
