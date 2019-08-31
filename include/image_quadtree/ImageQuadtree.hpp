@@ -26,6 +26,11 @@ namespace pcv
 class ImageQuadtree
 {
  public:
+    enum ART_MODE {
+        RECTANGLE = 0,
+        ELLIPSE = 1,
+    };
+
     struct ImageQuadrant {
         using Ptr = ImageQuadrant*;
 
@@ -55,6 +60,8 @@ class ImageQuadtree
     uchar* unpackQuadtree() const;
 
     cv::Mat unpackcvMatQuadtree() const;
+
+    cv::Mat unpackcvMatArtQuadtree(const ART_MODE mode = ART_MODE::RECTANGLE) const;
 
     const size_t imgCols() const
     {

@@ -54,7 +54,18 @@ ImageQuadtree::ImageQuadrant* ImageQuadtree::createImageQuadrant(const uint32_t 
     imageQuadrant->cMax = cMax;
     imageQuadrant->level = level;
 
-    if ((rMax - rMin) <= this->_minLeafSize || (cMax - cMin) <= this->_minLeafSize) {
+    static const std::vector<float> MAX_VARIANT(this->_imgChannel, 100.0);
+    const std::vector<float> varPixel = this->estimateVariancePixelValue(imageQuadrant);
+
+    bool moreThanMaxVariant = false;
+    for (size_t i = 0; i < this->_imgChannel; ++i) {
+        if (varPixel[i] > MAX_VARIANT[i]) {
+            moreThanMaxVariant = true;
+            break;
+        }
+    }
+
+    if ((rMax - rMin) <= this->_minLeafSize || (cMax - cMin) <= this->_minLeafSize || !moreThanMaxVariant) {
         const std::vector<float> averagePixel = this->estimateAveragePixelValue(imageQuadrant);
 
         imageQuadrant->pixel.reserve(this->_imgChannel);
@@ -146,6 +157,81 @@ cv::Mat ImageQuadtree::unpackcvMatQuadtree() const
             throw std::runtime_error("image must be of 1 or 3 channels");
             break;
     }
+}
+
+cv::Mat ImageQuadtree::unpackcvMatArtQuadtree(const ART_MODE mode) const
+{
+    cv::Mat result;
+
+    switch (this->_imgChannel) {
+        case 1: {
+            result = cv::Mat(this->_imgRows, this->_imgCols, CV_8UC1);
+            break;
+        }
+        case 3: {
+            result = cv::Mat(this->_imgRows, this->_imgCols, CV_8UC3);
+            break;
+        }
+        default:
+            throw std::runtime_error("image must be of 1 or 3 channels");
+            break;
+    }
+
+    std::vector<ImageQuadrant::Ptr> imageQuadrants;
+    imageQuadrants.emplace_back(this->_root);
+
+    while (!imageQuadrants.empty()) {
+        const ImageQuadrant::Ptr curImageQuadrantPtr = imageQuadrants.back();
+        imageQuadrants.pop_back();
+
+        if (!curImageQuadrantPtr->isLeaf) {
+            if (curImageQuadrantPtr->child[0] != nullptr) {
+                for (size_t i = 0; i < 4; ++i) {
+                    imageQuadrants.emplace_back(curImageQuadrantPtr->child[i]);
+                }
+            }
+
+            continue;
+        }
+
+        switch (mode) {
+            case ART_MODE::RECTANGLE: {
+                for (uint32_t ir = curImageQuadrantPtr->rMin; ir <= curImageQuadrantPtr->rMax; ++ir) {
+                    for (uint32_t ic = curImageQuadrantPtr->cMin; ic <= curImageQuadrantPtr->cMax; ++ic) {
+                        for (size_t k = 0; k < this->_imgChannel; ++k) {
+                            result.data[ir * this->_imgCols * this->_imgChannel + ic * this->_imgChannel + k] =
+                                curImageQuadrantPtr->pixel[k];
+                        }
+                        cv::rectangle(result, cv::Point(curImageQuadrantPtr->cMin, curImageQuadrantPtr->rMin),
+                                      cv::Point(curImageQuadrantPtr->cMax, curImageQuadrantPtr->rMax),
+                                      cv::Scalar(0, 0, 0));
+                    }
+                }
+                break;
+            }
+            case ART_MODE::ELLIPSE: {
+                cv::Scalar color;
+                if (this->_imgChannel == 1) {
+                    color = cv::Scalar(curImageQuadrantPtr->pixel.front(), curImageQuadrantPtr->pixel.front(),
+                                       curImageQuadrantPtr->pixel.front());
+                }
+                if (this->_imgChannel == 3) {
+                    color = cv::Scalar(curImageQuadrantPtr->pixel[0], curImageQuadrantPtr->pixel[1],
+                                       curImageQuadrantPtr->pixel[2]);
+                }
+                cv::RotatedRect rect(cv::Point(curImageQuadrantPtr->cMin, curImageQuadrantPtr->rMin),
+                                     cv::Point(curImageQuadrantPtr->cMin, curImageQuadrantPtr->rMax),
+                                     cv::Point(curImageQuadrantPtr->cMax, curImageQuadrantPtr->rMax));
+
+                cv::ellipse(result, rect, color, -1);
+                break;
+            }
+            default:
+                break;
+        }
+    }
+
+    return result;
 }
 
 void ImageQuadtree::unpackQuadtree(const ImageQuadrant* quadrant, uchar* unpackedData) const
