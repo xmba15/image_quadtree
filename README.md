@@ -6,3 +6,5 @@
 ![Style Ellipse](./docs/images/ellipse_image.jpg )
 
 ![Style Heartshape](./docs/images/heartshape_image.jpg )
+
+![Style Hug](./docs/images/hug.jpg )
