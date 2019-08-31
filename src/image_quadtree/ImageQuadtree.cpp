@@ -12,6 +12,7 @@
 #include <opencv2/opencv.hpp>
 
 #include "image_quadtree/ImageQuadtree.hpp"
+#include "image_quadtree/Utility.hpp"
 
 namespace pcv
 {
@@ -194,36 +195,32 @@ cv::Mat ImageQuadtree::unpackcvMatArtQuadtree(const ART_MODE mode) const
             continue;
         }
 
+        cv::Scalar color;
+        if (this->_imgChannel == 1) {
+            color = cv::Scalar(curImageQuadrantPtr->pixel.front());
+        }
+        if (this->_imgChannel == 3) {
+            color =
+                cv::Scalar(curImageQuadrantPtr->pixel[0], curImageQuadrantPtr->pixel[1], curImageQuadrantPtr->pixel[2]);
+        }
+
         switch (mode) {
             case ART_MODE::RECTANGLE: {
-                for (uint32_t ir = curImageQuadrantPtr->rMin; ir <= curImageQuadrantPtr->rMax; ++ir) {
-                    for (uint32_t ic = curImageQuadrantPtr->cMin; ic <= curImageQuadrantPtr->cMax; ++ic) {
-                        for (size_t k = 0; k < this->_imgChannel; ++k) {
-                            result.data[ir * this->_imgCols * this->_imgChannel + ic * this->_imgChannel + k] =
-                                curImageQuadrantPtr->pixel[k];
-                        }
-                        cv::rectangle(result, cv::Point(curImageQuadrantPtr->cMin, curImageQuadrantPtr->rMin),
-                                      cv::Point(curImageQuadrantPtr->cMax, curImageQuadrantPtr->rMax),
-                                      cv::Scalar(0, 0, 0));
-                    }
-                }
+                cv::rectangle(result, cv::Point(curImageQuadrantPtr->cMin, curImageQuadrantPtr->rMin),
+                              cv::Point(curImageQuadrantPtr->cMax, curImageQuadrantPtr->rMax), color, -1);
                 break;
             }
             case ART_MODE::ELLIPSE: {
-                cv::Scalar color;
-                if (this->_imgChannel == 1) {
-                    color = cv::Scalar(curImageQuadrantPtr->pixel.front(), curImageQuadrantPtr->pixel.front(),
-                                       curImageQuadrantPtr->pixel.front());
-                }
-                if (this->_imgChannel == 3) {
-                    color = cv::Scalar(curImageQuadrantPtr->pixel[0], curImageQuadrantPtr->pixel[1],
-                                       curImageQuadrantPtr->pixel[2]);
-                }
                 cv::RotatedRect rect(cv::Point(curImageQuadrantPtr->cMin, curImageQuadrantPtr->rMin),
                                      cv::Point(curImageQuadrantPtr->cMin, curImageQuadrantPtr->rMax),
                                      cv::Point(curImageQuadrantPtr->cMax, curImageQuadrantPtr->rMax));
 
                 cv::ellipse(result, rect, color, -1);
+                break;
+            }
+            case ART_MODE::HEART_SHAPE: {
+                pcv::drawHeartShape(result, cv::Point(curImageQuadrantPtr->cMin, curImageQuadrantPtr->rMin),
+                                    cv::Point(curImageQuadrantPtr->cMax, curImageQuadrantPtr->rMax), color);
                 break;
             }
             default:
