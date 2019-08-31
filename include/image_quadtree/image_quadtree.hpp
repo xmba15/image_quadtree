@@ -12,3 +12,4 @@
 #pragma once
 
 #include <image_quadtree/ImageQuadtree.hpp>
+#include <image_quadtree/Utility.hpp>

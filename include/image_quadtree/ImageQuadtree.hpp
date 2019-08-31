@@ -29,6 +29,7 @@ class ImageQuadtree
     enum ART_MODE {
         RECTANGLE = 0,
         ELLIPSE = 1,
+        HEART_SHAPE = 2,
     };
 
     struct ImageQuadrant {

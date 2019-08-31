@@ -1,5 +1,6 @@
 list(APPEND EXAMPLES
   ExImageQuadtree
+  ExImageQuadtreeHeartShape
 )
 
 include(example_utility)
