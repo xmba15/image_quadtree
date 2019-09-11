@@ -17,7 +17,7 @@
 int main(int argc, char* argv[])
 {
     if (argc == 2) {
-        pcv::ImageQuadtree imgQt(argv[1], 10);
+        pcv::ImageQuadtree imgQt(argv[1], 10, 1);
         cv::imwrite("quadtree_image.jpg", imgQt.unpackcvMatArtQuadtree(pcv::ImageQuadtree::ART_MODE::HEART_SHAPE));
 
         return EXIT_SUCCESS;
@@ -26,7 +26,7 @@ int main(int argc, char* argv[])
 #ifdef IMAGE_PATH
     std::stringstream ss;
     ss << IMAGE_PATH << "/baymax.jpg";
-    pcv::ImageQuadtree imgQt(ss.str(), 10);
+    pcv::ImageQuadtree imgQt(ss.str(), 10, 1);
 
     cv::imwrite("quadtree_image.jpg", imgQt.unpackcvMatArtQuadtree(pcv::ImageQuadtree::ART_MODE::HEART_SHAPE));
 

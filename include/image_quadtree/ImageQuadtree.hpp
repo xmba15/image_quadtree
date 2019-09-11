@@ -54,7 +54,11 @@ class ImageQuadtree
         ImageQuadrant* child[4];
     };
 
-    explicit ImageQuadtree(const std::string& imgName, const size_t leafSize = 4);
+    ImageQuadtree();
+
+    explicit ImageQuadtree(const cv::Mat& img, const size_t leafSize = 4, const double _maxVariant = 50);
+
+    explicit ImageQuadtree(const std::string& imgName, const size_t leafSize = 4, const double _maxVariant = 50);
 
     ~ImageQuadtree();
 
@@ -102,5 +106,7 @@ class ImageQuadtree
     size_t _minLeafSize;
 
     ImageQuadrant::Ptr _root;
+
+    double _maxVariant;
 };
 }  // namespace pcv

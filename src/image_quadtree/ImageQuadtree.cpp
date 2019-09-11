@@ -16,8 +16,27 @@
 
 namespace pcv
 {
-ImageQuadtree::ImageQuadtree(const std::string& imgName, const size_t minLeafSize)
-    : _imgName(imgName), _minLeafSize(minLeafSize)
+ImageQuadtree::ImageQuadtree() : _root(nullptr)
+{
+}
+
+ImageQuadtree::ImageQuadtree(const cv::Mat& img, const size_t minLeafSize, const double maxVariant)
+    : _imgName(""), _minLeafSize(minLeafSize), _maxVariant(maxVariant)
+{
+    assert(!img.empty() && img.isContinuous());
+
+    this->_data = new uchar[img.total() * img.elemSize()];
+
+    this->_imgCols = img.cols;
+    this->_imgRows = img.rows;
+    this->_imgChannel = img.channels();
+    memcpy(this->_data, img.data, img.total() * img.elemSize() * sizeof(uchar));
+
+    this->_root = this->createImageQuadrant(0, this->_imgRows - 1, 0, this->_imgCols - 1, 0);
+}
+
+ImageQuadtree::ImageQuadtree(const std::string& imgName, const size_t minLeafSize, const double maxVariant)
+    : _imgName(imgName), _minLeafSize(minLeafSize), _maxVariant(maxVariant)
 {
     cv::Mat img = cv::imread(imgName);
     assert(!img.empty() && img.isContinuous());
@@ -27,17 +46,21 @@ ImageQuadtree::ImageQuadtree(const std::string& imgName, const size_t minLeafSiz
         img = cv::imread(imgName, 1);
     }
 
-    this->_data = img.data;
+    this->_data = new uchar[img.total() * img.elemSize()];
     this->_imgCols = img.cols;
     this->_imgRows = img.rows;
     this->_imgChannel = img.channels();
+    memcpy(this->_data, img.data, img.total() * img.elemSize() * sizeof(uchar));
 
     this->_root = this->createImageQuadrant(0, this->_imgRows - 1, 0, this->_imgCols - 1, 0);
+
+    img.release();
 }
 
 ImageQuadtree::~ImageQuadtree()
 {
     delete _root;
+    // delete[] _data;
 }
 
 ImageQuadtree::ImageQuadrant* ImageQuadtree::createImageQuadrant(const uint32_t rMin, const uint32_t rMax,
@@ -55,7 +78,7 @@ ImageQuadtree::ImageQuadrant* ImageQuadtree::createImageQuadrant(const uint32_t 
     imageQuadrant->cMax = cMax;
     imageQuadrant->level = level;
 
-    static const std::vector<float> MAX_VARIANT(this->_imgChannel, 100.0);
+    static const std::vector<float> MAX_VARIANT(this->_imgChannel, this->_maxVariant);
     const std::vector<float> varPixel = this->estimateVariancePixelValue(imageQuadrant);
 
     bool moreThanMaxVariant = false;

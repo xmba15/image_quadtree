@@ -10,7 +10,7 @@ add_library(${LIBRARY_NAME}
      ${SOURCE_FILES}
 )
 
-find_package(OpenCV 3 REQUIRED)
+find_package(OpenCV REQUIRED)
 
 target_include_directories(${LIBRARY_NAME} PUBLIC
   ${OpenCV_INCLUDE_DIRS}
