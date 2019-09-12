@@ -12,6 +12,7 @@
 #include <iostream>
 
 #include <image_quadtree/image_quadtree.hpp>
+#include <memory>
 #include <opencv2/opencv.hpp>
 
 int main(int argc, char* argv[])
@@ -31,6 +32,7 @@ int main(int argc, char* argv[])
 
     int i = 0;
 
+    std::unique_ptr<pcv::ImageQuadtree> imgQtPtr;
     while (cap.isOpened()) {
         cv::Mat frame;
         cap >> frame;
@@ -39,13 +41,15 @@ int main(int argc, char* argv[])
             break;
         }
 
-        pcv::ImageQuadtree imgQt(frame, 10, 1);
+        imgQtPtr = std::make_unique<pcv::ImageQuadtree>(frame, 10, 1);
         std::stringstream namess;
-        namess << "./frames/frame" << i << ".jpg";
+        namess << "./frame" << i << ".jpg";
 
         cv::Mat toWrite(frame.rows, frame.cols, CV_8UC3, cv::Scalar(0));
-        imgQt.unpackcvMatArtQuadtree(toWrite, pcv::ImageQuadtree::ART_MODE::HEART_SHAPE);
+        imgQtPtr->unpackcvMatArtQuadtree(toWrite, pcv::ImageQuadtree::ART_MODE::HEART_SHAPE);
         cv::imwrite(namess.str(), toWrite);
+
+        imgQtPtr.reset();
 
         ++i;
     }

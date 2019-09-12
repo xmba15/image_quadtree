@@ -54,7 +54,7 @@ ImageQuadtree::ImageQuadtree(const std::string& imgName, const size_t minLeafSiz
 
 ImageQuadtree::~ImageQuadtree()
 {
-    this->_img.deallocate();
+    this->_img.release();
     delete _root;
 }
 
