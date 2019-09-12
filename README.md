@@ -1,4 +1,7 @@
 # image_quadtree #
+
+![Tokyo Tower](./docs/images/tokyo_tower.gif)
+
 ![Original Image](./docs/images/baymax.jpg)
 
 ![Style Rectangle](./docs/images/rectangle_image.jpg )
