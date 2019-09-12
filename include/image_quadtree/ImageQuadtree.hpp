@@ -68,6 +68,8 @@ class ImageQuadtree
 
     cv::Mat unpackcvMatArtQuadtree(const ART_MODE mode = ART_MODE::RECTANGLE) const;
 
+    void unpackcvMatArtQuadtree(cv::Mat& result, const ART_MODE mode = ART_MODE::RECTANGLE) const;
+
     const size_t imgCols() const
     {
         return this->_imgCols;
@@ -101,7 +103,7 @@ class ImageQuadtree
 
     size_t _imgChannel;
 
-    uchar* _data;
+    cv::Mat _img;
 
     size_t _minLeafSize;
 

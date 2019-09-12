@@ -30,24 +30,25 @@ int main(int argc, char* argv[])
     }
 
     int i = 0;
-    cv::Mat frame;
-    cap >> frame;
 
-    while (!frame.empty()) {
-        const pcv::ImageQuadtree imgQt(frame, 10, 1);
+    while (cap.isOpened()) {
+        cv::Mat frame;
+        cap >> frame;
 
+        if (frame.empty()) {
+            break;
+        }
+
+        pcv::ImageQuadtree imgQt(frame, 10, 1);
         std::stringstream namess;
         namess << "./frames/frame" << i << ".jpg";
 
-        cv::imwrite(namess.str(), imgQt.unpackcvMatArtQuadtree(pcv::ImageQuadtree::ART_MODE::HEART_SHAPE));
-        // cv::imwrite(namess.str(), frame);
+        cv::Mat toWrite(frame.rows, frame.cols, CV_8UC3, cv::Scalar(0));
+        imgQt.unpackcvMatArtQuadtree(toWrite, pcv::ImageQuadtree::ART_MODE::HEART_SHAPE);
+        cv::imwrite(namess.str(), toWrite);
 
-        cap >> frame;
         ++i;
     }
-
-    // pcv::ImageQuadtree imgQt(ss.str(), 10, 2);
-    // cv::imwrite("quadtree_image.jpg", imgQt.unpackcvMatArtQuadtree(pcv::ImageQuadtree::ART_MODE::HEART_SHAPE));
 
     return EXIT_SUCCESS;
 #endif  // IMAGE_PATH

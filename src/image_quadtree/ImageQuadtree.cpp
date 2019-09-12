@@ -25,12 +25,11 @@ ImageQuadtree::ImageQuadtree(const cv::Mat& img, const size_t minLeafSize, const
 {
     assert(!img.empty() && img.isContinuous());
 
-    this->_data = new uchar[img.total() * img.elemSize()];
-
     this->_imgCols = img.cols;
     this->_imgRows = img.rows;
     this->_imgChannel = img.channels();
-    memcpy(this->_data, img.data, img.total() * img.elemSize() * sizeof(uchar));
+
+    img.copyTo(this->_img);
 
     this->_root = this->createImageQuadrant(0, this->_imgRows - 1, 0, this->_imgCols - 1, 0);
 }
@@ -38,29 +37,25 @@ ImageQuadtree::ImageQuadtree(const cv::Mat& img, const size_t minLeafSize, const
 ImageQuadtree::ImageQuadtree(const std::string& imgName, const size_t minLeafSize, const double maxVariant)
     : _imgName(imgName), _minLeafSize(minLeafSize), _maxVariant(maxVariant)
 {
-    cv::Mat img = cv::imread(imgName);
-    assert(!img.empty() && img.isContinuous());
+    this->_img = cv::imread(imgName);
+    assert(!this->_img.empty() && this->_img.isContinuous());
 
     // reread image as a 3-channel image if the current image has 4 channels
-    if (img.channels() > 3) {
-        img = cv::imread(imgName, 1);
+    if (this->_img.channels() > 3) {
+        this->_img = cv::imread(imgName, 1);
     }
 
-    this->_data = new uchar[img.total() * img.elemSize()];
-    this->_imgCols = img.cols;
-    this->_imgRows = img.rows;
-    this->_imgChannel = img.channels();
-    memcpy(this->_data, img.data, img.total() * img.elemSize() * sizeof(uchar));
+    this->_imgCols = this->_img.cols;
+    this->_imgRows = this->_img.rows;
+    this->_imgChannel = this->_img.channels();
 
     this->_root = this->createImageQuadrant(0, this->_imgRows - 1, 0, this->_imgCols - 1, 0);
-
-    img.release();
 }
 
 ImageQuadtree::~ImageQuadtree()
 {
+    this->_img.deallocate();
     delete _root;
-    // delete[] _data;
 }
 
 ImageQuadtree::ImageQuadrant* ImageQuadtree::createImageQuadrant(const uint32_t rMin, const uint32_t rMax,
@@ -124,7 +119,7 @@ const std::vector<float> ImageQuadtree::estimateAveragePixelValue(const ImageQua
     for (uint32_t ir = quadrant->rMin; ir <= quadrant->rMax; ++ir) {
         for (uint32_t ic = quadrant->cMin; ic <= quadrant->cMax; ++ic) {
             for (size_t k = 0; k < this->_imgChannel; ++k) {
-                result[k] += this->_data[ir * this->_imgCols * this->_imgChannel + ic * this->_imgChannel + k];
+                result[k] += this->_img.data[ir * this->_imgCols * this->_imgChannel + ic * this->_imgChannel + k];
             }
         }
     }
@@ -144,7 +139,7 @@ const std::vector<float> ImageQuadtree::estimateVariancePixelValue(const ImageQu
     for (uint32_t ir = quadrant->rMin; ir <= quadrant->rMax; ++ir) {
         for (uint32_t ic = quadrant->cMin; ic <= quadrant->cMax; ++ic) {
             for (size_t k = 0; k < this->_imgChannel; ++k) {
-                const uchar val = this->_data[ir * this->_imgCols * this->_imgChannel + ic * this->_imgChannel + k];
+                const uchar val = this->_img.data[ir * this->_imgCols * this->_imgChannel + ic * this->_imgChannel + k];
                 result[k] += std::pow((averagePixel[k] - val), 2);
             }
         }
@@ -183,29 +178,13 @@ cv::Mat ImageQuadtree::unpackcvMatQuadtree() const
     }
 }
 
-cv::Mat ImageQuadtree::unpackcvMatArtQuadtree(const ART_MODE mode) const
+void ImageQuadtree::unpackcvMatArtQuadtree(cv::Mat& result, const ART_MODE mode) const
 {
-    cv::Mat result;
-
-    switch (this->_imgChannel) {
-        case 1: {
-            result = cv::Mat(this->_imgRows, this->_imgCols, CV_8UC1);
-            break;
-        }
-        case 3: {
-            result = cv::Mat(this->_imgRows, this->_imgCols, CV_8UC3);
-            break;
-        }
-        default:
-            throw std::runtime_error("image must be of 1 or 3 channels");
-            break;
-    }
-
     std::vector<ImageQuadrant::Ptr> imageQuadrants;
     imageQuadrants.emplace_back(this->_root);
 
     while (!imageQuadrants.empty()) {
-        const ImageQuadrant::Ptr curImageQuadrantPtr = imageQuadrants.back();
+        ImageQuadrant::Ptr curImageQuadrantPtr = imageQuadrants.back();
         imageQuadrants.pop_back();
 
         if (!curImageQuadrantPtr->isLeaf) {
@@ -250,6 +229,27 @@ cv::Mat ImageQuadtree::unpackcvMatArtQuadtree(const ART_MODE mode) const
                 break;
         }
     }
+}
+
+cv::Mat ImageQuadtree::unpackcvMatArtQuadtree(const ART_MODE mode) const
+{
+    cv::Mat result;
+
+    switch (this->_imgChannel) {
+        case 1: {
+            result.create(this->_imgRows, this->_imgCols, CV_8UC1);
+            break;
+        }
+        case 3: {
+            result.create(this->_imgRows, this->_imgCols, CV_8UC3);
+            break;
+        }
+        default:
+            throw std::runtime_error("image must be of 1 or 3 channels");
+            break;
+    }
+
+    this->unpackcvMatArtQuadtree(result, mode);
 
     return result;
 }
@@ -281,7 +281,9 @@ ImageQuadtree::ImageQuadrant::ImageQuadrant() : isLeaf(true), rMin(0), rMax(0), 
 ImageQuadtree::ImageQuadrant::~ImageQuadrant()
 {
     for (uint32_t i = 0; i < 4; ++i) {
-        delete child[i];
+        if (child[i]) {
+            delete child[i];
+        }
     }
 }
 
